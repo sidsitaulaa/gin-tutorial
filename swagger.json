@@ -40,7 +40,55 @@
         "tags": [
           "recipes"
         ],
-        "operationId": "NewRecipes"
+        "operationId": "NewRecipes",
+        "parameters": [
+          {
+            "type": "string",
+            "x-go-name": "ID",
+            "name": "id",
+            "in": "query"
+          },
+          {
+            "type": "string",
+            "x-go-name": "Name",
+            "name": "name",
+            "in": "query"
+          },
+          {
+            "type": "array",
+            "items": {
+              "type": "string"
+            },
+            "x-go-name": "Tags",
+            "name": "tags",
+            "in": "query"
+          },
+          {
+            "type": "array",
+            "items": {
+              "type": "string"
+            },
+            "x-go-name": "Ingredients",
+            "name": "ingredients",
+            "in": "query"
+          },
+          {
+            "type": "array",
+            "items": {
+              "type": "string"
+            },
+            "x-go-name": "Instructions",
+            "name": "instructions",
+            "in": "query"
+          },
+          {
+            "type": "string",
+            "format": "date-time",
+            "x-go-name": "PublishedAt",
+            "name": "publishedAt",
+            "in": "query"
+          }
+        ]
       }
     },
     "/recipes/{id}": {
