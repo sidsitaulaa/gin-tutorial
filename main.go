@@ -1,3 +1,19 @@
+// Recipes API
+// This is a sample recipes API
+//
+// Schemes: http
+// Host: localhost:8080
+// BasePath: /
+// Version: 1.0.0
+//
+// Contact: Siddhartha Sitaula <sitaulasiddhartha2002@gmail.com> https://sitaulasiddhartha2002@gmail.com
+//
+// Consumes:
+// - application/json
+//
+// Produces:
+// - application/json
+// swagger:meta
 package main
 
 import (
@@ -5,6 +21,7 @@ import (
 	"net/http"
 	"os"
 	"strconv"
+	"strings"
 	"time"
 
 	"github.com/gin-gonic/gin"
@@ -28,6 +45,24 @@ func init() {
 	_ = json.Unmarshal([]byte(file), &recipies)
 }
 
+// swagger:operation POST /recipes recipes NewRecipes
+// Creates a new recipe
+// ---
+//
+// requestBody:
+//
+//	description: Request body of the POST /recipes
+//	requried: true
+//	content:
+//	  application/json
+//
+// produces:
+// - application/json
+//
+// responses:
+//
+//	'200':
+//		description: Successful Operations
 func NewRecipeHandler(c *gin.Context) {
 	var recipe Recipe
 	if err := c.ShouldBindJSON(&recipe); err != nil {
@@ -43,10 +78,36 @@ func NewRecipeHandler(c *gin.Context) {
 	c.JSON(http.StatusOK, recipe)
 }
 
+// swagger:operation GET /recipes recipes ListRecipes
+// Returns list of recipes
+// ---
+// produces:
+// - application/json
+//
+// responses:
+//
+//	'200':
+//	   description: Successful operation
 func ListRecipesHandler(c *gin.Context) {
 	c.JSON(200, recipies)
 }
 
+// swagger:operation PUT /recipes/{id} recipes updateRecipe
+// Update an existing recipe
+// ---
+// parameters:
+//   - name: id
+//     in: path
+//     description: ID of the recipe
+//     required: true
+//     type: string
+//
+// produces:
+// - application/json
+// responses:
+//
+//	'200':
+//		description: Successful Operation
 func UpdateRecipeHandler(c *gin.Context) {
 	id := c.Param("id")
 	var recipe Recipe
@@ -100,6 +161,26 @@ func DeleteRecipeHandler(c *gin.Context) {
 
 }
 
+func SearchRecipesHandler(c *gin.Context) {
+	tag := c.Query("tag")
+	listOfRecipes := make([]Recipe, 0)
+
+	for i := 0; i < len(recipies); i++ {
+		found := false
+		for _, t := range recipies[i].Tags {
+			if strings.EqualFold(tag, t) {
+				found = true
+			}
+		}
+
+		if found {
+			listOfRecipes = append(listOfRecipes, recipies[i])
+		}
+	}
+
+	c.JSON(http.StatusOK, listOfRecipes)
+}
+
 func main() {
 	router := gin.Default()
 
@@ -107,6 +188,7 @@ func main() {
 	router.GET("/recipes", ListRecipesHandler)
 	router.PUT("/recipes/:id", UpdateRecipeHandler)
 	router.DELETE("/recipes/:id", DeleteRecipeHandler)
+	router.GET("/recipes/search", SearchRecipesHandler)
 
 	router.Run(":8080")
 }
