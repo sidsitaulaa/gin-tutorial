@@ -30,6 +30,8 @@ import (
 	"go.mongodb.org/mongo-driver/mongo"
 	"go.mongodb.org/mongo-driver/mongo/options"
 	"go.mongodb.org/mongo-driver/mongo/readpref"
+
+	"github.com/go-redis/redis"
 )
 
 // swagger:parameters recipes NewRecipes
@@ -64,7 +66,15 @@ func init() {
 
 	log.Println("Connected to MongoDB")
 	collection := client.Database("tutorial").Collection("recipes")
-	recipiesHandler = handlers.NewRecipeHandler(ctx, *collection)
+
+	redisClient := redis.NewClient(&redis.Options{
+		Addr:     "localhost:6379",
+		Password: "",
+		DB:       0,
+	})
+	recipiesHandler = handlers.NewRecipeHandler(ctx, collection, redisClient)
+	status := redisClient.Ping()
+	fmt.Println(status)
 }
 
 // swagger:operation POST /recipes recipes NewRecipes
@@ -85,31 +95,6 @@ func init() {
 //
 //	'200':
 //		description: Successful Operations
-func NewRecipeHandler(c *gin.Context) {
-	var recipe Recipe
-	collection := client.Database("tutorial").Collection("recipes")
-	if err := c.ShouldBindJSON(&recipe); err != nil {
-		c.JSON(http.StatusBadRequest, gin.H{
-			"error": err.Error(),
-		})
-		return
-	}
-
-	recipe.ID = primitive.NewObjectID()
-	recipe.PublishedAt = time.Now()
-	recipies = append(recipies, recipe)
-
-	_, err = collection.InsertOne(ctx, recipe)
-
-	if err != nil {
-		fmt.Println(err)
-		c.JSON(http.StatusInternalServerError, gin.H{
-			"error": err.Error(),
-		})
-	}
-
-	c.JSON(http.StatusOK, recipe)
-}
 
 // swagger:operation GET /recipes recipes ListRecipes
 // Returns list of recipes
@@ -122,6 +107,7 @@ func NewRecipeHandler(c *gin.Context) {
 //	'200':
 //	   description: Successful operation
 func ListRecipesHandler(c *gin.Context) {
+
 	collection := client.Database("tutorial").Collection("recipes")
 	cur, err := collection.Find(ctx, bson.M{})
 	if err != nil {
@@ -238,7 +224,7 @@ func UpdateRecipeHandler(c *gin.Context) {
 func main() {
 	router := gin.Default()
 
-	router.POST("/recipes", NewRecipeHandler)
+	router.POST("/recipes", recipiesHandler.NewRecipeHandler)
 	router.GET("/recipes", recipiesHandler.ListRecipesHandler)
 	router.PUT("/recipes/:id", UpdateRecipeHandler)
 	// router.DELETE("/recipes/:id", DeleteRecipeHandler)
