@@ -18,20 +18,23 @@ package main
 
 import (
 	"context"
+	"crypto/sha256"
+	"encoding/hex"
 	"fmt"
 	"log"
 	"net/http"
 	"time"
 	"tutorial/handlers"
 
+	"github.com/gin-contrib/sessions"
+	sRedis "github.com/gin-contrib/sessions/redis"
 	"github.com/gin-gonic/gin"
+	"github.com/go-redis/redis"
 	"go.mongodb.org/mongo-driver/bson"
 	"go.mongodb.org/mongo-driver/bson/primitive"
 	"go.mongodb.org/mongo-driver/mongo"
 	"go.mongodb.org/mongo-driver/mongo/options"
 	"go.mongodb.org/mongo-driver/mongo/readpref"
-
-	"github.com/go-redis/redis"
 )
 
 // swagger:parameters recipes NewRecipes
@@ -50,6 +53,7 @@ var err error
 var client *mongo.Client
 
 var recipiesHandler *handlers.RecipeHandler
+var authHandler *handlers.AuthHandler
 
 func init() {
 
@@ -66,15 +70,19 @@ func init() {
 
 	log.Println("Connected to MongoDB")
 	collection := client.Database("tutorial").Collection("recipes")
+	collectionUsers := client.Database("tutorial").Collection("users")
 
 	redisClient := redis.NewClient(&redis.Options{
 		Addr:     "localhost:6379",
 		Password: "",
 		DB:       0,
 	})
+
 	recipiesHandler = handlers.NewRecipeHandler(ctx, collection, redisClient)
 	status := redisClient.Ping()
 	fmt.Println(status)
+
+	authHandler = handlers.NewAuthHandler(ctx, collectionUsers)
 }
 
 // swagger:operation POST /recipes recipes NewRecipes
@@ -221,14 +229,53 @@ func UpdateRecipeHandler(c *gin.Context) {
 // 	c.JSON(http.StatusOK, listOfRecipes)
 // }
 
-func main() {
-	router := gin.Default()
+// func AuthMiddleware() gin.HandlerFunc {
+// 	return func(c *gin.Context) {
+// 		if c.GetHeader("X-API-KEY") != os.Getenv("X_API_KEY") {
+// 			c.AbortWithStatus(401)
+// 		}
+// 		c.Next()
+// 	}
+// }
 
-	router.POST("/recipes", recipiesHandler.NewRecipeHandler)
+func main() {
+	users := map[string]string{
+		"admin": "admin",
+		"user":  "user",
+	}
+	h := sha256.New()
+	ctx := context.Background()
+	client, err = mongo.Connect(ctx, options.Client().ApplyURI("mongodb://admin:password@localhost:27027/"))
+
+	if err = client.Ping(context.TODO(), readpref.Primary()); err != nil {
+		log.Fatal(err)
+	}
+
+	collectionUsers := client.Database("tutorial").Collection("users")
+	// store, _ := redisStore.NewStore(10, "tcp", "localhost:6379", "", []byte("secret"))
+
+	for username, password := range users {
+		collectionUsers.InsertOne(ctx, bson.M{
+			"username": username,
+			"password": hex.EncodeToString(h.Sum([]byte(password))),
+		})
+	}
+
+	router := gin.Default()
+	authorized := router.Group("/")
+	store, _ := sRedis.NewStore(10, "tcp", "localhost:6379", "", []byte("secret"))
+	router.Use(sessions.Sessions("mysession", store))
 	router.GET("/recipes", recipiesHandler.ListRecipesHandler)
-	router.PUT("/recipes/:id", UpdateRecipeHandler)
-	// router.DELETE("/recipes/:id", DeleteRecipeHandler)
-	// router.GET("/recipes/search", SearchRecipesHandler)
+	router.POST("/signin", authHandler.SignInHandler)
+	router.POST("/refresh", authHandler.RefreshHandler)
+	authorized.Use(authHandler.AuthMiddleware())
+	{
+
+		authorized.POST("/recipes", recipiesHandler.NewRecipeHandler)
+		authorized.PUT("/recipes/:id", UpdateRecipeHandler)
+		// router.DELETE("/recipes/:id", DeleteRecipeHandler)
+		// router.GET("/recipes/search", SearchRecipesHandler)
+	}
 
 	router.Run(":8080")
 }
