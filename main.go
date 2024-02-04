@@ -262,9 +262,9 @@ func main() {
 	}
 
 	router := gin.Default()
-	authorized := router.Group("/")
 	store, _ := sRedis.NewStore(10, "tcp", "localhost:6379", "", []byte("secret"))
 	router.Use(sessions.Sessions("mysession", store))
+	authorized := router.Group("/")
 	router.GET("/recipes", recipiesHandler.ListRecipesHandler)
 	router.POST("/signin", authHandler.SignInHandler)
 	router.POST("/refresh", authHandler.RefreshHandler)
@@ -273,6 +273,7 @@ func main() {
 
 		authorized.POST("/recipes", recipiesHandler.NewRecipeHandler)
 		authorized.PUT("/recipes/:id", UpdateRecipeHandler)
+		authorized.POST("/signout", authHandler.SignOutHandler)
 		// router.DELETE("/recipes/:id", DeleteRecipeHandler)
 		// router.GET("/recipes/search", SearchRecipesHandler)
 	}
