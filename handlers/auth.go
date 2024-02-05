@@ -38,6 +38,17 @@ func NewAuthHandler(ctx context.Context, collection *mongo.Collection) *AuthHand
 	}
 }
 
+// swagger"operation POST /signin auth signIn
+// Login with username and password
+// ---
+// produces:
+// - application/json
+// responses:
+//
+//	'200':
+//		description: Successful operation
+//	'401':
+//		description: Invalid credentials
 func (handler *AuthHandler) SignInHandler(c *gin.Context) {
 	var user models.User
 

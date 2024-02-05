@@ -102,6 +102,19 @@ func (handler *RecipeHandler) NewRecipeHandler(c *gin.Context) {
 	c.JSON(http.StatusOK, recipe)
 }
 
+// swagger:operation POST /refresh auth refresh
+// Get new token in exchange for an old one
+// ---
+// produces:
+// - application/json
+// responses:
+//
+//	'200':
+//		description: Successful operation
+//	'400':
+//		description: Token is new and doesn't need a refresh
+//	'401':
+//		description: Invalid credentials
 func (handler *AuthHandler) RefreshHandler(c *gin.Context) {
 	tokenValue := c.GetHeader("Authorization")
 	claims := &Claims{}

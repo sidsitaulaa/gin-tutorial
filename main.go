@@ -7,6 +7,12 @@
 // Version: 1.0.0
 //
 // Contact: Siddhartha Sitaula <sitaulasiddhartha2002@gmail.com> https://sitaulasiddhartha2002@gmail.com
+// SecurityDesfinations:
+// api_key:
+//
+//	type:apiKey
+//	name:Authorization
+//	in:header
 //
 // Consumes:
 // - application/json
@@ -278,5 +284,6 @@ func main() {
 		// router.GET("/recipes/search", SearchRecipesHandler)
 	}
 
+	// router.RunTLS(":2222", "certs/localhost.crt", "certs/localhost.key")
 	router.Run(":8080")
 }

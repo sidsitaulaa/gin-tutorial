@@ -43,7 +43,6 @@
         "operationId": "NewRecipes",
         "parameters": [
           {
-            "type": "string",
             "x-go-name": "ID",
             "name": "id",
             "in": "query"
@@ -110,6 +109,18 @@
             "required": true
           }
         ]
+      }
+    },
+    "/refresh": {
+      "post": {
+        "description": "Get new token in exchange for an old one",
+        "produces": [
+          "application/json"
+        ],
+        "tags": [
+          "auth"
+        ],
+        "operationId": "refresh"
       }
     }
   }
